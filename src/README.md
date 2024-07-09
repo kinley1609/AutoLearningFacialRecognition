@@ -23,5 +23,5 @@ mkdir Model
 # Run:
 ```bash
 cd src
-python src/face_rec_cam.py
+python .\src\face_rec_cam.py
 ```
