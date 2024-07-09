@@ -1,0 +1,7 @@
+arguments: src/align_dataset_mtcnn.py ./Dataset/FaceData/raw ./Dataset/FaceData/processed --image_size 160 --margin 32 --random_order --gpu_memory_fraction 0.25
+--------------------
+tensorflow version: 2.16.1
+--------------------
+git hash: b'3bd96fb02ad4cd1d2f2a2b9232b3adaa2836dc3f'
+--------------------
+b'diff --git a/src/README.md b/src/README.md\nindex b92d89c..9e09726 100644\n--- a/src/README.md\n+++ b/src/README.md\n@@ -13,11 +13,13 @@ Pip install -r requirements.txt\n \n # Create a Directory for the Dataset\n ```bash\n-mkdir Dataset/FaceData Data/FaceData/processed Data/FaceData/r\n+mkdir Dataset/FaceData Data/FaceData/processed Data/FaceData/raw\n ```\n \n-\n-\n+# Create a Directory for the Model\n+```bash\n+mkdir Model\n+``` \n # Run:\n ```bash\n cd src'

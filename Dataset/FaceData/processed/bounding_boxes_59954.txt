@@ -1,0 +1,12 @@
+./Dataset/FaceData/processed\Bao Kien\100.png 110 59 377 402
+./Dataset/FaceData/processed\Bao Kien\101.png 163 108 359 358
+./Dataset/FaceData/processed\Bao Kien\102.png 161 103 362 364
+./Dataset/FaceData/processed\Bao Kien\103.png 161 102 356 359
+./Dataset/FaceData/processed\Bao Kien\104.png 442 42 578 206
+./Dataset/FaceData/processed\Bao Kien\105.png
+./Dataset/FaceData/processed\Bao Kien\106.png 143 94 274 259
+./Dataset/FaceData/processed\Bao Kien\107.png 176 106 363 355
+./Dataset/FaceData/processed\Bao Kien\108.png 191 106 373 342
+./Dataset/FaceData/processed\Bao Kien\109.png 227 77 444 362
+./Dataset/FaceData/processed\Bao Kien\110.png 188 112 359 336
+./Dataset/FaceData/processed\Bao Kien\111.png 184 110 358 344
