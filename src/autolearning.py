@@ -14,20 +14,20 @@ def create_directory(path):
         os.makedirs(path)
 
 
-def count_images_in_raw(RAW_DATA_DIR):
+def count_images_in_raw(raw_data_dir):
     total_images = 0
-    for root, dirs, files in os.walk(RAW_DATA_DIR):
+    for root, dirs, files in os.walk(raw_data_dir):
         total_images += len([f for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg'))])
     return total_images
 
 
-def capture_images(name, RAW_DATA_DIR, num_images=100):
-    face_analyzer = FaceAnalysis(name='buffalo_l', root=r'D:\Swinburne\Sem_6 (2024)\COS40005 - Computing Technology Project A\Code\AutoLearningFacialRecognition\insightface_model')
+def capture_images(name, raw_data_dir, num_images=100):
+    face_analyzer = FaceAnalysis(name='buffalo_l', root=r'..\AutoLearningFacialRecognition\insightface_model')
     face_analyzer.prepare(ctx_id=-1, det_size=(640, 640))
 
     cap = cv2.VideoCapture(0)
     image_count = 0
-    person_dir = os.path.join(RAW_DATA_DIR, name)
+    person_dir = os.path.join(raw_data_dir, name)
 
     create_directory(person_dir)
     print(f"Saving images to: {person_dir}")
@@ -59,7 +59,7 @@ def capture_images(name, RAW_DATA_DIR, num_images=100):
 
 
 def train_model(data_dir, model_path):
-    face_analyzer = FaceAnalysis(name='buffalo_l',root=r'D:\Swinburne\Sem_6 (2024)\COS40005 - Computing Technology Project A\Code\AutoLearningFacialRecognition\insightface_model')
+    face_analyzer = FaceAnalysis(name='buffalo_l',root=r'..\AutoLearningFacialRecognition\insightface_model')
     face_analyzer.prepare(ctx_id=0, det_size=(640, 640))
 
     embeddings = []
@@ -113,7 +113,7 @@ def cosine_predict(embedding, embeddings, labels):
     return predicted_label, best_match_similarity
 
 
-def recognize_and_train(face_analyzer, model, RAW_DATA_DIR, model_path):
+def recognize_and_train(face_analyzer, model, raw_data_dir, model_path):
     if model is None or 'embeddings' not in model or 'labels' not in model:
         print("No valid model found. Please train a model first.")
         return None
@@ -158,7 +158,7 @@ def recognize_and_train(face_analyzer, model, RAW_DATA_DIR, model_path):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
             if similarity > 0.7 and name != "Unknown":
-                person_dir = os.path.join(RAW_DATA_DIR, name)
+                person_dir = os.path.join(raw_data_dir, name)
                 create_directory(person_dir)
                 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                 img_filename = f"{timestamp}_{high_confidence_images_captured[name]}.jpg"
@@ -168,18 +168,18 @@ def recognize_and_train(face_analyzer, model, RAW_DATA_DIR, model_path):
                 print(f"Captured high confidence image for {name}")
                 print(f"Image saved at: {img_path}")
 
-                total_images = count_images_in_raw(RAW_DATA_DIR)
+                total_images = count_images_in_raw(raw_data_dir)
                 print(f"Total images in raw directory: {total_images}")
 
                 if total_images >= 300:
                     cap.release()
                     cv2.destroyAllWindows()
                     print("Total images reached 300. Training model...")
-                    model = train_model(RAW_DATA_DIR, model_path)
+                    model = train_model(raw_data_dir, model_path)
                     print("Model updated. Clearing old images...")
 
-                    for person_folder in os.listdir(RAW_DATA_DIR):
-                        person_path = os.path.join(RAW_DATA_DIR, person_folder)
+                    for person_folder in os.listdir(raw_data_dir):
+                        person_path = os.path.join(raw_data_dir, person_folder)
                         if os.path.isdir(person_path):
                             for file in os.listdir(person_path):
                                 os.remove(os.path.join(person_path, file))
@@ -203,17 +203,17 @@ def main():
     parser.add_argument('--path', help='Path of the video you want to test on.', default=0)
     args = parser.parse_args()
 
-    MODEL_PATH = r'..\AutoLearningFacialRecognition\Models\new_facemodel.pkl'
-    RAW_DATA_DIR = r'..\AutoLearningFacialRecognition\Dataset\FaceData\raw'
+    model_path = r'..\AutoLearningFacialRecognition\Models\new_facemodel.pkl'
+    raw_data_dir = r'..\AutoLearningFacialRecognition\Dataset\FaceData\raw'
     # Ensure you replace the above path with the actual path on your system
 
-    face_analyzer = FaceAnalysis(name='buffalo_l', root='./insightface_model')
+    face_analyzer = FaceAnalysis(name='buffalo_l', root=r'..\AutoLearningFacialRecognition\Models\insightface_model')
     face_analyzer.prepare(ctx_id=-1, det_size=(640, 640))
 
     print(f"Face analyzer model: {face_analyzer.models}")
 
-    if os.path.exists(MODEL_PATH):
-        with open(MODEL_PATH, 'rb') as file:
+    if os.path.exists(model_path):
+        with open(model_path, 'rb') as file:
             model_data = pickle.load(file)
         print("Custom Classifier loaded successfully")
         print(f"Loaded model type: {type(model_data)}")
@@ -248,17 +248,17 @@ def main():
 
         if choice == '1':
             if model is not None:
-                model = recognize_and_train(face_analyzer, model, RAW_DATA_DIR, MODEL_PATH)
+                model = recognize_and_train(face_analyzer, model, raw_data_dir, model_path)
             else:
                 print("Please train a model first.")
         elif choice == '2':
             name = input("Enter name: ")
-            capture_images(name, RAW_DATA_DIR)
+            capture_images(name, raw_data_dir)
         elif choice == '3':
-            model = train_model(RAW_DATA_DIR, MODEL_PATH)
+            model = train_model(raw_data_dir, model_path)
         elif choice == '4':
             if model is not None:
-                model = recognize_and_train(face_analyzer, model, RAW_DATA_DIR, MODEL_PATH)
+                model = recognize_and_train(face_analyzer, model, raw_data_dir, model_path)
             else:
                 print("Please train a model first.")
         elif choice.lower() == 'q':

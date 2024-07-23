@@ -8,16 +8,19 @@ import os
 import pickle
 from sklearn.svm import SVC
 
+
 def load_face_analyzer():
-    face_analyzer = FaceAnalysis(name='buffalo_l', root=r'D:\Swinburne\Sem_6 (2024)\COS40005 - Computing Technology Project A\Code\AutoLearningFacialRecognition\insightface_model')
+    face_analyzer = FaceAnalysis(name='buffalo_l', root=r'.\AutoLearningFacialRecognition\insightface_model')
     face_analyzer.prepare(ctx_id=0, det_size=(640, 640))
     return face_analyzer
+
 
 def get_face_embedding(face_analyzer, img):
     faces = face_analyzer.get(img)
     if len(faces) == 0:
         return None
     return faces[0].embedding
+
 
 def train_new_model(data_dir, model_path):
     face_analyzer = load_face_analyzer()
@@ -62,8 +65,9 @@ def train_new_model(data_dir, model_path):
     print(f"New model trained and saved successfully to {model_path}")
     print(f"Class names: {class_names}")
 
+
 if __name__ == "__main__":
-    DATA_DIR = r'..\AutoLearningFacialRecognition\Dataset\FaceData\raw'  # Đường dẫn đến thư mục chứa dữ liệu mới của bạn
-    NEW_MODEL_PATH = r'..\AutoLearningFacialRecognition\Models\new_facemodel.pkl'  # Đường dẫn để lưu tệp pkl mới
+    data_dir = r'..\AutoLearningFacialRecognition\Dataset\FaceData\raw'  # Đường dẫn đến thư mục chứa dữ liệu mới của bạn
+    new_model_path = r'..\AutoLearningFacialRecognition\Models\new_facemodel.pkl'  # Đường dẫn để lưu tệp pkl mới
     
-    train_new_model(DATA_DIR, NEW_MODEL_PATH)
+    train_new_model(data_dir, new_model_path)
