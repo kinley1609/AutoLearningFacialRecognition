@@ -9,7 +9,7 @@ import pickle
 from sklearn.svm import SVC
 
 def load_face_analyzer():
-    face_analyzer = FaceAnalysis(name='buffalo_l', root='./insightface_model')
+    face_analyzer = FaceAnalysis(name='buffalo_l', root=r'D:\Swinburne\Sem_6 (2024)\COS40005 - Computing Technology Project A\Code\AutoLearningFacialRecognition\insightface_model')
     face_analyzer.prepare(ctx_id=0, det_size=(640, 640))
     return face_analyzer
 
@@ -63,7 +63,7 @@ def train_new_model(data_dir, model_path):
     print(f"Class names: {class_names}")
 
 if __name__ == "__main__":
-    DATA_DIR = 'Dataset/FaceData/raw'  # Đường dẫn đến thư mục chứa dữ liệu mới của bạn
-    NEW_MODEL_PATH = 'Models/new_facemodel.pkl'  # Đường dẫn để lưu tệp pkl mới
+    DATA_DIR = r'..\AutoLearningFacialRecognition\Dataset\FaceData\raw'  # Đường dẫn đến thư mục chứa dữ liệu mới của bạn
+    NEW_MODEL_PATH = r'..\AutoLearningFacialRecognition\Models\new_facemodel.pkl'  # Đường dẫn để lưu tệp pkl mới
     
     train_new_model(DATA_DIR, NEW_MODEL_PATH)

@@ -8,35 +8,38 @@ import datetime
 from insightface.app import FaceAnalysis
 from sklearn.metrics.pairwise import cosine_similarity
 
+
 def create_directory(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-def count_images_in_raw(raw_data_dir):
+
+def count_images_in_raw(RAW_DATA_DIR):
     total_images = 0
-    for root, dirs, files in os.walk(raw_data_dir):
+    for root, dirs, files in os.walk(RAW_DATA_DIR):
         total_images += len([f for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg'))])
     return total_images
 
-def capture_images(name, raw_data_dir, num_images=200):
-    face_analyzer = FaceAnalysis(name='buffalo_l', root='./insightface_model')
+
+def capture_images(name, RAW_DATA_DIR, num_images=100):
+    face_analyzer = FaceAnalysis(name='buffalo_l', root=r'D:\Swinburne\Sem_6 (2024)\COS40005 - Computing Technology Project A\Code\AutoLearningFacialRecognition\insightface_model')
     face_analyzer.prepare(ctx_id=-1, det_size=(640, 640))
-    
+
     cap = cv2.VideoCapture(0)
     image_count = 0
-    person_dir = os.path.join(raw_data_dir, name)
-    
+    person_dir = os.path.join(RAW_DATA_DIR, name)
+
     create_directory(person_dir)
     print(f"Saving images to: {person_dir}")
-    
+
     while image_count < num_images:
         ret, frame = cap.read()
         if not ret:
             print("Failed to capture image")
             continue
-        
+
         faces = face_analyzer.get(frame, max_num=1)
-        
+
         if len(faces) == 1:
             img_path = os.path.join(person_dir, f"{image_count}.jpg")
             cv2.imwrite(img_path, frame)
@@ -44,61 +47,63 @@ def capture_images(name, raw_data_dir, num_images=200):
             print(f"Captured image {image_count}/{num_images}")
         else:
             print("Please ensure only one face is visible")
-        
+
         cv2.imshow('Capture', frame)
-        
+
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-    
+
     cap.release()
     cv2.destroyAllWindows()
     print(f"Captured {image_count} images for {name}")
 
+
 def train_model(data_dir, model_path):
-    face_analyzer = FaceAnalysis(name='buffalo_l')
+    face_analyzer = FaceAnalysis(name='buffalo_l',root=r'D:\Swinburne\Sem_6 (2024)\COS40005 - Computing Technology Project A\Code\AutoLearningFacialRecognition\insightface_model')
     face_analyzer.prepare(ctx_id=0, det_size=(640, 640))
-    
+
     embeddings = []
     labels = []
-    
+
     for person_name in os.listdir(data_dir):
         person_dir = os.path.join(data_dir, person_name)
         if not os.path.isdir(person_dir):
             continue
-        
+
         for image_name in os.listdir(person_dir):
             image_path = os.path.join(person_dir, image_name)
             image = cv2.imread(image_path)
-            
+
             faces = face_analyzer.get(image, max_num=1)
             if len(faces) != 1:
                 print(f"Skipping {image_path}: detected {len(faces)} faces")
                 continue
-            
+
             face = faces[0]
             embedding = face.embedding
-            
+
             embeddings.append(embedding)
             labels.append(person_name)
-    
+
     model = {
         'embeddings': np.array(embeddings),
         'labels': labels,
         'class_names': list(set(labels))
     }
-    
+
     with open(model_path, 'wb') as f:
         pickle.dump(model, f)
-    
+
     print(f"Model saved with {len(model['class_names'])} classes")
     print(f"Class names: {model['class_names']}")
-    
+
     class_counts = collections.Counter(labels)
     print("Number of samples per class:")
     for class_name, count in class_counts.items():
         print(f"{class_name}: {count}")
-    
+
     return model
+
 
 def cosine_predict(embedding, embeddings, labels):
     similarities = cosine_similarity([embedding], embeddings)[0]
@@ -107,19 +112,20 @@ def cosine_predict(embedding, embeddings, labels):
     predicted_label = labels[best_match_index]
     return predicted_label, best_match_similarity
 
-def recognize_and_train(face_analyzer, model, raw_data_dir, model_path):
+
+def recognize_and_train(face_analyzer, model, RAW_DATA_DIR, model_path):
     if model is None or 'embeddings' not in model or 'labels' not in model:
         print("No valid model found. Please train a model first.")
         return None
 
     embeddings = model['embeddings']
     labels = model['labels']
-    
+
     cap = cv2.VideoCapture(0)
     high_confidence_images_captured = collections.defaultdict(int)
-    
+
     RECOGNITION_THRESHOLD = 0.3
-    
+
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -130,29 +136,29 @@ def recognize_and_train(face_analyzer, model, raw_data_dir, model_path):
         print(f"Frame min: {np.min(frame)}, max: {np.max(frame)}")
 
         faces = face_analyzer.get(frame, max_num=1)
-        
+
         for face in faces:
             bbox = face.bbox.astype(int)
             embedding = face.embedding
-            
+
             print(f"Embedding shape: {embedding.shape}")
             print(f"Embedding norm: {np.linalg.norm(embedding)}")
             print(f"Embedding min: {np.min(embedding)}, max: {np.max(embedding)}")
-            
+
             predicted_label, similarity = cosine_predict(embedding, embeddings, labels)
             print(f"Predicted label: {predicted_label}, Similarity: {similarity}")
-            
+
             if similarity > RECOGNITION_THRESHOLD:
                 name = predicted_label
             else:
                 name = "Unknown"
-            
+
             cv2.rectangle(frame, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 255, 0), 2)
             cv2.putText(frame, f"{name}: {similarity:.2f}", (bbox[0], bbox[1] - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            
+
             if similarity > 0.7 and name != "Unknown":
-                person_dir = os.path.join(raw_data_dir, name)
+                person_dir = os.path.join(RAW_DATA_DIR, name)
                 create_directory(person_dir)
                 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                 img_filename = f"{timestamp}_{high_confidence_images_captured[name]}.jpg"
@@ -161,43 +167,45 @@ def recognize_and_train(face_analyzer, model, raw_data_dir, model_path):
                 high_confidence_images_captured[name] += 1
                 print(f"Captured high confidence image for {name}")
                 print(f"Image saved at: {img_path}")
-                
-                total_images = count_images_in_raw(raw_data_dir)
+
+                total_images = count_images_in_raw(RAW_DATA_DIR)
                 print(f"Total images in raw directory: {total_images}")
-                
+
                 if total_images >= 300:
                     cap.release()
                     cv2.destroyAllWindows()
                     print("Total images reached 300. Training model...")
-                    model = train_model(raw_data_dir, model_path)
+                    model = train_model(RAW_DATA_DIR, model_path)
                     print("Model updated. Clearing old images...")
-                    
-                    for person_folder in os.listdir(raw_data_dir):
-                        person_path = os.path.join(raw_data_dir, person_folder)
+
+                    for person_folder in os.listdir(RAW_DATA_DIR):
+                        person_path = os.path.join(RAW_DATA_DIR, person_folder)
                         if os.path.isdir(person_path):
                             for file in os.listdir(person_path):
                                 os.remove(os.path.join(person_path, file))
-                    
+
                     print("Old images cleared. Resuming recognition...")
                     cap = cv2.VideoCapture(0)
                     high_confidence_images_captured.clear()
-        
+
         cv2.imshow('Recognition', frame)
-        
+
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-    
+
     cap.release()
     cv2.destroyAllWindows()
     return model
+
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', help='Path of the video you want to test on.', default=0)
     args = parser.parse_args()
 
-    MODEL_PATH = 'Models/facemodel.pkl'
-    RAW_DATA_DIR = 'Dataset/FaceData/raw'
+    MODEL_PATH = r'..\AutoLearningFacialRecognition\Models\new_facemodel.pkl'
+    RAW_DATA_DIR = r'..\AutoLearningFacialRecognition\Dataset\FaceData\raw'
+    # Ensure you replace the above path with the actual path on your system
 
     face_analyzer = FaceAnalysis(name='buffalo_l', root='./insightface_model')
     face_analyzer.prepare(ctx_id=-1, det_size=(640, 640))
@@ -221,7 +229,7 @@ def main():
         else:
             print("Unknown model format")
             model = None
-        
+
         if model is not None:
             print(f"Model keys: {model.keys()}")
             print(f"Class names: {model.get('class_names', [])}")
@@ -257,6 +265,7 @@ def main():
             break
         else:
             print("Invalid choice. Please try again.")
+
 
 if __name__ == "__main__":
     main()

@@ -135,10 +135,10 @@ class VideoProcessor:
 def main():
     st.title("Face Recognition and Auto-Learning System")
 
-    MODEL_PATH = 'Models/facemodel.pkl'
-    RAW_DATA_DIR = 'Dataset/FaceData/raw'
+    MODEL_PATH = r'..\AutoLearningFacialRecognition\Models\new_facemodel.pkl'
+    RAW_DATA_DIR = r'..\AutoLearningFacialRecognition\Dataset\FaceData\raw'
 
-    face_analyzer = FaceAnalysis(name='buffalo_l', root='./insightface_model')
+    face_analyzer = FaceAnalysis(name='buffalo_l', root=r'D:\Swinburne\Sem_6 (2024)\COS40005 - Computing Technology Project A\Code\AutoLearningFacialRecognition\insightface_model')
     face_analyzer.prepare(ctx_id=-1, det_size=(640, 640))
 
     if os.path.exists(MODEL_PATH):
