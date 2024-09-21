@@ -29,5 +29,6 @@ python src/classifier.py TRAIN Dataset/FaceData/processed Models/20180402-114759
 ```
 # Run the program:
 ```bash
-python ./src/face_rec_cam.py
+python ./src/autolearning.py
+
 ```
