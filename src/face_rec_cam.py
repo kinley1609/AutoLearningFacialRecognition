@@ -12,6 +12,10 @@ import cv2
 import collections
 from sklearn.svm import SVC
 import subprocess
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import classification_report
 
 def create_directory(path):
     if not os.path.exists(path):
@@ -232,6 +236,129 @@ def recognize_and_train(sess, images_placeholder, embeddings, phase_train_placeh
     cap.release()
     cv2.destroyAllWindows()
 
+def evaluate_model(sess, images_placeholder, embeddings, phase_train_placeholder, model, class_names, test_data_dir):
+    MINSIZE = 20
+    THRESHOLD = [0.6, 0.7, 0.7]
+    FACTOR = 0.709
+    INPUT_IMAGE_SIZE = 160
+
+    # Create MTCNN
+    pnet, rnet, onet = align.detect_face.create_mtcnn(sess, "src/align")
+
+    total_images = sum([len(files) for r, d, files in os.walk(test_data_dir)])
+    print(f"Total images: {total_images}")
+
+    y_true = []
+    y_pred = []
+    confidences = []
+
+    # Process each class
+    for class_name in class_names:
+        test_images_path = os.path.join(test_data_dir, class_name)
+        if not os.path.exists(test_images_path):
+            print(f"Warning: Directory not found for class {class_name}")
+            continue
+
+        print(f"\nProcessing class: {class_name}")
+        
+        # Process each image in the class directory
+        for image_file in os.listdir(test_images_path):
+            if not image_file.lower().endswith(('.png', '.jpg', '.jpeg')):
+                continue
+
+            image_path = os.path.join(test_images_path, image_file)
+            frame = cv2.imread(image_path)
+            
+            if frame is None:
+                print(f"Warning: Could not read image {image_path}")
+                continue
+
+            try:
+                # Detect face
+                bounding_boxes, _ = align.detect_face.detect_face(
+                    frame, MINSIZE, pnet, rnet, onet, THRESHOLD, FACTOR)
+
+                if len(bounding_boxes) < 1:
+                    print(f"No face detected in {image_file}")
+                    continue
+
+                # Use the first detected face
+                det = bounding_boxes[0, 0:4]
+                bb = np.zeros(4, dtype=np.int32)
+                bb[0] = max(det[0], 0)
+                bb[1] = max(det[1], 0)
+                bb[2] = min(det[2], frame.shape[1])
+                bb[3] = min(det[3], frame.shape[0])
+
+                # Crop and process face
+                cropped = frame[bb[1]:bb[3], bb[0]:bb[2], :]
+                scaled = cv2.resize(cropped, (INPUT_IMAGE_SIZE, INPUT_IMAGE_SIZE),
+                                  interpolation=cv2.INTER_CUBIC)
+                scaled = facenet.prewhiten(scaled)
+                scaled_reshape = scaled.reshape(-1, INPUT_IMAGE_SIZE, INPUT_IMAGE_SIZE, 3)
+                
+                # Get embedding
+                feed_dict = {
+                    images_placeholder: scaled_reshape,
+                    phase_train_placeholder: False
+                }
+                emb_array = sess.run(embeddings, feed_dict=feed_dict)
+
+                # Make prediction
+                predictions = model.predict_proba(emb_array)
+                best_class_index = np.argmax(predictions[0])
+                confidence = predictions[0][best_class_index]
+                predicted_name = class_names[best_class_index]
+
+                y_true.append(class_name)
+                y_pred.append(predicted_name)
+                confidences.append(confidence)
+
+                print(f"Image: {image_file}, Predicted: {predicted_name}, "
+                      f"Confidence: {confidence:.3f}")
+
+            except Exception as e:
+                print(f"Error processing {image_file}: {str(e)}")
+                continue
+
+    # Calculate metrics
+    if len(y_true) > 0:
+        print("\nEvaluation Results:")
+        print("------------------")
+        
+        # Calculate and print accuracy
+        accuracy = accuracy_score(y_true, y_pred)
+        print(f"Accuracy: {accuracy:.4f}")
+
+        # Calculate and print precision, recall, and F1 score
+        precision = precision_score(y_true, y_pred, average='weighted')
+        recall = recall_score(y_true, y_pred, average='weighted')
+        f1 = f1_score(y_true, y_pred, average='weighted')
+
+        print(f"Precision: {precision:.4f}")
+        print(f"Recall: {recall:.4f}")
+        print(f"F1-Score: {f1:.4f}")
+
+        # Print confusion matrix
+        cm = confusion_matrix(y_true, y_pred, labels=class_names)
+        print("\nConfusion Matrix:")
+        print("----------------")
+        print("True labels (rows) vs Predicted labels (columns)")
+        for i, row in enumerate(cm):
+            print(f"{class_names[i]}: {row}")
+
+        # Print detailed classification report
+        print("\nClassification Report:")
+        print("---------------------")
+        print(classification_report(y_true, y_pred, target_names=class_names))
+
+        # Print average confidence
+        avg_confidence = np.mean(confidences)
+        print(f"\nAverage Confidence: {avg_confidence:.4f}")
+
+    else:
+        print("No valid predictions were made. Check your test data and face detection parameters.")
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', help='Path of the video you want to test on.', default=0)
@@ -241,6 +368,7 @@ def main():
     FACENET_MODEL_PATH = './Models/20180402-114759.pb'
     RAW_DATA_DIR = './Dataset/FaceData/raw'
     PROCESSED_DATA_DIR = './Dataset/FaceData/processed'
+    TEST_DATA_DIR = './Dataset/FaceData/test'
 
     # Load The Custom Classifier
     with open(CLASSIFIER_PATH, 'rb') as file:
@@ -265,6 +393,7 @@ def main():
                 print("2. Register Face")
                 print("3. Train Model")
                 print("4. Attendance and Train")
+                print("5. Evaluate Model")
                 print("q. Quit")
                 choice = input("Enter your choice: ")
 
@@ -279,6 +408,8 @@ def main():
                     train_model(PROCESSED_DATA_DIR, FACENET_MODEL_PATH, CLASSIFIER_PATH)
                 elif choice == '4':
                     recognize_and_train(sess, images_placeholder, embeddings, phase_train_placeholder, model, class_names, RAW_DATA_DIR, PROCESSED_DATA_DIR, FACENET_MODEL_PATH, CLASSIFIER_PATH)
+                elif choice == '5':
+                    evaluate_model(sess, images_placeholder, embeddings, phase_train_placeholder, model, class_names, TEST_DATA_DIR)
                 elif choice == 'q':
                     break
                 else:
